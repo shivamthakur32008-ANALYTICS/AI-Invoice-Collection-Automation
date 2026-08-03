@@ -1,0 +1,739 @@
+{
+  "name": "Payment Detection",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "059cb86a-c553-414f-a83c-f1e941bfd932",
+      "name": "Payment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        128
+      ],
+      "webhookId": "6400b290-a814-4ed5-9db4-f790d496fbc8"
+    },
+    {
+      "parameters": {},
+      "id": "553e76ab-2449-4699-a80b-b62845dd1810",
+      "name": "Merge Inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Mark Invoice as Paid",
+        "formDescription": "Manually record a payment to stop reminders for an invoice.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Invoice ID",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Note"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "path": "mark-paid"
+        }
+      },
+      "id": "18e898a0-0c9c-4164-ade5-56bf2fb51fcc",
+      "name": "Manual Paid Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        320
+      ],
+      "webhookId": "82bed58a-188f-45da-8cd6-e400d7585d53"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nconst body = j.body || {};\nlet invoice_id = \"\";\nlet source = \"Manual\";\nlet detail = \"\";\n// Manual form field\nif (j['Invoice ID']) {\n  invoice_id = j['Invoice ID'];\n  source = \"Manual\";\n  detail = j['Note'] || 'Manual override';\n} else {\n  source = \"System\";\n  // Common gateway shapes\n  if (body.invoice_id) {\n    invoice_id = body.invoice_id;\n  } else if (body.data && body.data.object && body.data.object.metadata && body.data.object.metadata.invoice_id) {\n    invoice_id = body.data.object.metadata.invoice_id;\n  } else if (j.invoice_id) {\n    invoice_id = j.invoice_id;\n  }\n  detail = body.id || body.event || j.id || 'Gateway event';\n}\nreturn { invoice_id: String(invoice_id || \"\").trim(), source, detail: String(detail || \"\") };"
+      },
+      "id": "702928f2-4a93-4a6f-9fc0-293f6e693f42",
+      "name": "Extract Invoice ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "h1",
+              "leftValue": "={{ $json.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e3a4632d-fa22-4490-9f88-006eed662f5f",
+      "name": "Has Invoice ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "invoice_id",
+              "keyValue": "={{ $json.invoice_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "3109741e-ba26-4566-937b-31690b027d00",
+      "name": "Lookup Invoice",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        144
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "f1",
+              "leftValue": "={{ $json.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4cc734c7-d190-48de-9177-05658ad5b33a",
+      "name": "Invoice Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "ap1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Paid",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1789353-d15f-4360-87d6-c99b0fa73fca",
+      "name": "Already Paid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Invoice already Paid\", \"invoice_id\": $json.invoice_id } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "216937ca-4dfb-42f6-aea6-28de5045c929",
+      "name": "Already Paid Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "invoice_id",
+              "keyValue": "={{ $json.invoice_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_reminder",
+              "displayName": "last_reminder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "status": "Paid",
+            "last_reminder": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "bc0a8217-4b55-4820-8285-613aff3ae533",
+      "name": "Mark Paid",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Invoice Found?').item.json.invoice_id }}",
+            "client_name": "={{ $('Invoice Found?').item.json.client_name }}",
+            "action": "Payment Received",
+            "channel": "={{ $('Extract Invoice ID').item.json.source }}",
+            "status": "Closed",
+            "detail": "={{ $('Extract Invoice ID').item.json.detail }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "ee76d955-f9e6-40a9-8670-4ea2672b00a8",
+      "name": "Log Closure",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Invoice marked as Paid\", \"invoice_id\": $('Invoice Found?').item.json.invoice_id } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "08d522e9-eb55-4a6a-8b78-52baecb387b8",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2016,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Extract Invoice ID').item.json.invoice_id || 'unknown' }}",
+            "client_name": "",
+            "action": "Payment Unmatched",
+            "channel": "={{ $('Extract Invoice ID').item.json.source }}",
+            "status": "Failed",
+            "detail": "={{ $('Extract Invoice ID').item.json.detail }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "8879a1f4-9bdf-457f-9499-265946ad62bd",
+      "name": "Log Unmatched",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"message\": \"No matching invoice found\", \"invoice_id\": $('Extract Invoice ID').item.json.invoice_id } }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "b65342cd-6461-4099-bf65-0979fe63b4db",
+      "name": "Not Found Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Intake\nPayment gateway webhook + manual override form, merged into one stream.",
+        "height": 184,
+        "width": 220
+      },
+      "id": "a3027db2-5004-4961-ac76-9b0e2bb7dada",
+      "name": "Sticky Note a3027db2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Normalize\nExtract invoice_id from any gateway shape or the form; capture source + detail.",
+        "height": 184,
+        "width": 204
+      },
+      "id": "2ecb16a2-bf09-48e5-9e81-0c039f0f225d",
+      "name": "Sticky Note 2ecb16a2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Lookup + Guards\nFind the invoice, confirm it exists, and check it is not already Paid (idempotency).",
+        "height": 184,
+        "width": 204
+      },
+      "id": "1fe92893-506d-4973-9fda-8643e4152561",
+      "name": "Sticky Note 1fe92893",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        432,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. Close + Log\nMark Paid, log the closure, or log an unmatched attempt.",
+        "height": 184,
+        "width": 188
+      },
+      "id": "3e53ef49-f29f-48a3-a188-a1f7df8d2dce",
+      "name": "Sticky Note 3e53ef49",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. Respond\nEvery branch ends at a Respond node.",
+        "height": 184,
+        "width": 188
+      },
+      "id": "12efd3c8-86d3-4b5a-80e9-c00522151177",
+      "name": "Sticky Note 12efd3c8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -96
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Payment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Merge Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Inputs": {
+      "main": [
+        [
+          {
+            "node": "Extract Invoice ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Paid Form": {
+      "main": [
+        [
+          {
+            "node": "Merge Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Extract Invoice ID": {
+      "main": [
+        [
+          {
+            "node": "Has Invoice ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Invoice ID?": {
+      "main": [
+        [
+          {
+            "node": "Lookup Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Unmatched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invoice Found?": {
+      "main": [
+        [
+          {
+            "node": "Already Paid?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Unmatched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Already Paid?": {
+      "main": [
+        [
+          {
+            "node": "Already Paid Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Paid": {
+      "main": [
+        [
+          {
+            "node": "Log Closure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Closure": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Unmatched": {
+      "main": [
+        [
+          {
+            "node": "Not Found Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "4aabefdf-2c77-4fa6-87c0-7233c7c0eb7a",
+  "meta": {
+    "instanceId": "a7ac81e5ae9d5fa29e54322ae861e42ebc40c34a217443715f97a558451118cd"
+  },
+  "nodeGroups": [],
+  "id": "nsitKfj7BiVdFfpS",
+  "tags": []
+}

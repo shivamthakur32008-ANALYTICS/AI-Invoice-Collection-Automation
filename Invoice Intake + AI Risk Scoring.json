@@ -1,0 +1,911 @@
+{
+  "name": "Invoice Intake + AI Risk Scoring",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Create Invoice",
+        "formDescription": "Register a new invoice for automated payment reminders.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Invoice ID",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Client Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Phone"
+            },
+            {
+              "fieldLabel": "Amount",
+              "fieldType": "number",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Currency",
+              "defaultValue": "INR"
+            },
+            {
+              "fieldLabel": "Due Date",
+              "fieldType": "date",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Payment Link"
+            },
+            {
+              "fieldLabel": "Invoice PDF URL"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {
+          "path": "invoice-intake"
+        }
+      },
+      "id": "fe17a15f-91d2-42e1-8501-40efb7f771d9",
+      "name": "Form Intake",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "72afb861-8395-4844-9908-fa84b8c455c3"
+    },
+    {
+      "parameters": {},
+      "id": "dca21887-58d2-4ab8-a9d1-13629706ff38",
+      "name": "Merge Inputs",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice-intake-hook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "eff17543-fb1b-4c18-ae8d-b7c8f07adaf9",
+      "name": "Webhook Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        288
+      ],
+      "webhookId": "7d1a0a23-7cf4-4b15-a715-1dd03b73c1af"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $json['Invoice ID'] || $json.body?.invoice_id || '' }}"
+            },
+            {
+              "id": "a2",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $json['Client Name'] || $json.body?.client_name || '' }}"
+            },
+            {
+              "id": "a3",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $json['Email'] || $json.body?.email || '' }}"
+            },
+            {
+              "id": "a4",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $json['Phone'] || $json.body?.phone || '' }}"
+            },
+            {
+              "id": "a5",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ $json['Amount'] || $json.body?.amount || 0 }}"
+            },
+            {
+              "id": "a6",
+              "name": "currency",
+              "type": "string",
+              "value": "={{ $json['Currency'] || $json.body?.currency || 'INR' }}"
+            },
+            {
+              "id": "a7",
+              "name": "due_date",
+              "type": "string",
+              "value": "={{ $json['Due Date'] || $json.body?.due_date || '' }}"
+            },
+            {
+              "id": "a8",
+              "name": "payment_link",
+              "type": "string",
+              "value": "={{ $json['Payment Link'] || $json.body?.payment_link || '' }}"
+            },
+            {
+              "id": "a9",
+              "name": "invoice_pdf",
+              "type": "string",
+              "value": "={{ $json['Invoice PDF URL'] || $json.body?.invoice_pdf || '' }}"
+            },
+            {
+              "id": "a10",
+              "name": "status",
+              "type": "string",
+              "value": "Pending"
+            },
+            {
+              "id": "a11",
+              "name": "reminder_level",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "id": "a12",
+              "name": "created_date",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6caf73d0-3f6e-4f81-af79-e10fe5b265d9",
+      "name": "Normalize Invoice",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nconst errors = [];\nconst invoiceId = j.invoice_id;\nconst email = j.email;\nconst amount = Number(j.amount);\nconst dueDate = j.due_date;\nif (!invoiceId || String(invoiceId).trim() === '') errors.push('Invoice ID is required');\nconst emailRe = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nif (!email || !emailRe.test(String(email))) errors.push('A valid email is required');\nif (isNaN(amount) || amount <= 0) errors.push('Amount must be greater than 0');\nif (!dueDate || isNaN(new Date(dueDate).getTime())) errors.push('A valid due date is required');\nreturn { ...j, is_valid: errors.length === 0, error_message: errors.join('; ') };"
+      },
+      "id": "81c5ae1c-9894-4db7-98fc-13da84fb7502",
+      "name": "Validate Invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b0419b37-3d24-4557-b14d-d4ce281fd586",
+      "name": "Is Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "invoice_id",
+              "keyValue": "={{ $json.invoice_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "31fdffd9-b2cf-42f3-9d02-e1c56c059e12",
+      "name": "Check Duplicate",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        96
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "d1",
+              "leftValue": "={{ $json.createdAt }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8bb16e18-26d6-4380-8ac7-f3412a1287bc",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1344,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"message\": \"Duplicate Invoice\", \"invoice_id\": $('Validate Invoice').item.json.invoice_id } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "id": "03de9ba5-7612-412d-ac6d-e2259c084f51",
+      "name": "Duplicate Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.invoice_id }}"
+            },
+            {
+              "id": "p2",
+              "name": "client_name",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.client_name }}"
+            },
+            {
+              "id": "p3",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.email }}"
+            },
+            {
+              "id": "p4",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.phone }}"
+            },
+            {
+              "id": "p5",
+              "name": "amount",
+              "type": "number",
+              "value": "={{ $('Validate Invoice').item.json.amount }}"
+            },
+            {
+              "id": "p6",
+              "name": "currency",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.currency }}"
+            },
+            {
+              "id": "p7",
+              "name": "due_date",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.due_date }}"
+            },
+            {
+              "id": "p8",
+              "name": "payment_link",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.payment_link }}"
+            },
+            {
+              "id": "p9",
+              "name": "invoice_pdf",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.invoice_pdf }}"
+            },
+            {
+              "id": "p10",
+              "name": "status",
+              "type": "string",
+              "value": "Pending"
+            },
+            {
+              "id": "p11",
+              "name": "reminder_level",
+              "type": "number",
+              "value": 0
+            },
+            {
+              "id": "p12",
+              "name": "created_date",
+              "type": "string",
+              "value": "={{ $('Validate Invoice').item.json.created_date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "679a7286-fc67-4c19-b5b6-d658c147c1a7",
+      "name": "Prepare Insert",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a credit-risk model for accounts receivable. Given invoice details, respond with ONLY a single integer between 0 and 100 that estimates the percentage likelihood the client pays late. No words, no symbols, no explanation — just the integer."
+            },
+            {
+              "content": "=Client: {{ $json.client_name }}\nAmount: {{ $json.amount }} {{ $json.currency }}\nDue date: {{ $json.due_date }}\nToday: {{ $now.toISODate() }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 10,
+          "temperature": 0
+        }
+      },
+      "id": "4b158ef8-3666-4c25-925d-a57141879e02",
+      "name": "Generate Risk Score",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1744,
+        272
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "E745MCQe09JbQDc4",
+          "name": "n8n free OpenAI API credits"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let raw;\ntry {\n  const out = $json.output;\n  if (Array.isArray(out) && out[0] && out[0].content && out[0].content[0]) {\n    raw = out[0].content[0].text;\n  } else if (typeof $json.text === 'string') {\n    raw = $json.text;\n  }\n} catch (e) { raw = undefined; }\nlet score = 50;\nif (raw !== undefined && raw !== null) {\n  const m = String(raw).match(/\\d+/);\n  if (m) {\n    let n = parseInt(m[0], 10);\n    if (!isNaN(n)) { if (n < 0) n = 0; if (n > 100) n = 100; score = n; }\n  }\n}\nreturn { risk_score: score };"
+      },
+      "id": "8c41e48b-f8f4-474e-9a16-92095671219f",
+      "name": "Parse Risk Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "01141af7-cc35-4a3a-8b58-d15d6191911e",
+      "name": "Merge Risk",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2224,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": $json.error_message } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "9d19048a-d769-4fa0-ade8-9cc742b1e4f9",
+      "name": "Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $json.invoice_id }}",
+            "client_name": "={{ $json.client_name }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "amount": "={{ $json.amount }}",
+            "currency": "={{ $json.currency }}",
+            "due_date": "={{ $json.due_date }}",
+            "status": "={{ $json.status }}",
+            "reminder_level": "={{ $json.reminder_level }}",
+            "payment_link": "={{ $json.payment_link }}",
+            "invoice_pdf": "={{ $json.invoice_pdf }}",
+            "risk_score": "={{ $json.risk_score }}",
+            "created_date": "={{ $json.created_date }}"
+          },
+          "schema": [
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reminder_level",
+              "displayName": "reminder_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_link",
+              "displayName": "payment_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_pdf",
+              "displayName": "invoice_pdf",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "risk_score",
+              "displayName": "risk_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_date",
+              "displayName": "created_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bd695b8c-f72a-45ab-8dfc-5852c385a66e",
+      "name": "Insert Invoice",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2432,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Invoice stored\", \"invoice_id\": $('Merge Risk').item.json.invoice_id, \"risk_score\": $('Merge Risk').item.json.risk_score } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "f9089284-199e-49ba-b2cb-544c94164dc0",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2672,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Intake\nForm + Webhook capture new invoices, then merge into one stream.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "40229481-3481-40b3-a4b3-5e2757d75fcd",
+      "name": "Sticky Note 40229481",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Normalize + Validate\nMap both shapes to invoice columns, then validate required fields.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "ee43b388-f0e6-48ac-ad36-72d64443d6ab",
+      "name": "Sticky Note ee43b388",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Duplicate Guard\nQuery invoices by invoice_id; skip insert if it already exists.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "5026b5ff-0de3-4d27-8c85-825d0a454b33",
+      "name": "Sticky Note 5026b5ff",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        512,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. AI Risk Score\nOpenAI returns 0-100 risk; parsed safely (fallback 50) and merged back onto the invoice.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "63f3687d-2356-43d2-a63c-ab6f4b4f2de9",
+      "name": "Sticky Note 63f3687d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. Insert + Respond\nStore the invoice and return a response on every branch.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "11e42936-5fb2-4bd1-b02c-7e0a88cc6fc5",
+      "name": "Sticky Note 11e42936",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Form Intake": {
+      "main": [
+        [
+          {
+            "node": "Merge Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Inputs": {
+      "main": [
+        [
+          {
+            "node": "Normalize Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Intake": {
+      "main": [
+        [
+          {
+            "node": "Merge Inputs",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Normalize Invoice": {
+      "main": [
+        [
+          {
+            "node": "Validate Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Invoice": {
+      "main": [
+        [
+          {
+            "node": "Is Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid?": {
+      "main": [
+        [
+          {
+            "node": "Check Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Duplicate": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Duplicate Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Insert": {
+      "main": [
+        [
+          {
+            "node": "Merge Risk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Risk Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Risk Score": {
+      "main": [
+        [
+          {
+            "node": "Parse Risk Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Risk Score": {
+      "main": [
+        [
+          {
+            "node": "Merge Risk",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Risk": {
+      "main": [
+        [
+          {
+            "node": "Insert Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Invoice": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c5539b47-b180-4675-92d4-d81e70062606",
+  "meta": {
+    "instanceId": "a7ac81e5ae9d5fa29e54322ae861e42ebc40c34a217443715f97a558451118cd"
+  },
+  "nodeGroups": [],
+  "id": "GJHzkab8ULp7biKv",
+  "tags": []
+}

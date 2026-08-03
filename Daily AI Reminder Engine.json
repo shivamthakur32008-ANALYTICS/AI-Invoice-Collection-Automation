@@ -1,0 +1,1970 @@
+{
+  "name": "Daily AI Reminder Engine",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "471374c8-a8a8-46fc-b488-bd2cd9e12a47",
+      "name": "Daily 09:00 Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg1",
+              "name": "manager_email",
+              "type": "string",
+              "value": "shivamthakur32008@gmail.com"
+            },
+            {
+              "id": "cfg2",
+              "name": "phone_number_id",
+              "type": "string",
+              "value": " + 91 9857050777"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "98755dce-068d-40ff-b8a3-2a1c1b6b5f9b",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        672
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "returnAll": true
+      },
+      "id": "de926282-6a9c-4b96-b24e-55cb65b033d6",
+      "name": "Read Invoices",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "p1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "Pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d0f4d70b-23fe-436a-a2a1-90db250a9542",
+      "name": "Filter Pending",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "s1",
+              "leftValue": "={{ ($json.last_reminder ? $json.last_reminder.toString().slice(0,10) : '') === $now.toISODate() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2f1d404-5674-4c51-8bf2-a7b6590f99ce",
+      "name": "Skip If Sent Today",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nconst zone = 'Asia/Kolkata';\nconst today = DateTime.now().setZone(zone).startOf('day');\nlet days_offset = null;\nif (j.due_date) {\n  let due = DateTime.fromISO(String(j.due_date), { zone: 'utc' }).setZone(zone);\n  if (!due.isValid) { due = DateTime.fromISO(String(j.due_date)).setZone(zone); }\n  if (due.isValid) {\n    due = due.startOf('day');\n    days_offset = Math.round(today.diff(due, 'days').days);\n  }\n}\nreturn { ...j, days_offset };"
+      },
+      "id": "da59d376-85e7-43b9-9673-5d2cef5f0f52",
+      "name": "Calculate Days",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r0",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": -7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "due-7"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r1",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": -3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "due-3"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r2",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": 0,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "due-today"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r3",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "late+3"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r4",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "late+7"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r5",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": 14,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "late+14"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "r6",
+                    "leftValue": "={{ $json.days_offset }}",
+                    "rightValue": 30,
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "late+30"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "id": "1720f661-a5a2-4d01-8a97-cf82aaa6f98c",
+      "name": "Stage Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1344,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "m1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Reminder -7"
+            },
+            {
+              "id": "m2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 1
+            },
+            {
+              "id": "m3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "m4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Friendly reminder: Invoice {{ $json.invoice_id }} due soon"
+            },
+            {
+              "id": "m5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "A warm, friendly early reminder that the invoice is due in 7 days. No pressure."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e71d78a5-9a57-4971-aee2-970e2702c770",
+      "name": "Stage -7 (Friendly)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c6ebabdb-501d-4918-8b42-ad418c945141",
+      "name": "Stage Ready",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an accounts-receivable assistant. Write concise, professional-but-friendly invoice payment reminder emails as clean HTML (a few short paragraphs). Never invent facts. Return ONLY the HTML body, no subject line, no markdown code fences."
+            },
+            {
+              "content": "=Purpose: {{ $json.stage_instruction }}\nStage: {{ $json.stage_label }}\nClient name: {{ $json.client_name }}\nInvoice ID: {{ $json.invoice_id }}\nAmount: {{ $json.amount }} {{ $json.currency }}\nDue date: {{ $json.due_date }}\nPayment link: {{ $json.payment_link }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.6
+        }
+      },
+      "id": "b8bd18c2-f11b-4785-babd-b1fdec384f67",
+      "name": "Generate Message",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        2016,
+        512
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "E745MCQe09JbQDc4",
+          "name": "n8n free OpenAI API credits"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "n1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Reminder -3"
+            },
+            {
+              "id": "n2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 2
+            },
+            {
+              "id": "n3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "n4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Reminder: Invoice {{ $json.invoice_id }} due in 3 days"
+            },
+            {
+              "id": "n5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "A polite reminder with slight urgency that the invoice is due in 3 days."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "0040af34-47f2-4a78-a483-7b15ad732f43",
+      "name": "Stage -3 (Gentle)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "o1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Due Today"
+            },
+            {
+              "id": "o2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 3
+            },
+            {
+              "id": "o3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "o4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Invoice {{ $json.invoice_id }} is due today"
+            },
+            {
+              "id": "o5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "The invoice is due today. Polite prompt to pay today."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "4d262054-fd71-417f-b6bd-6012a232ed66",
+      "name": "Stage 0 (Due Today)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "q1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Overdue +3"
+            },
+            {
+              "id": "q2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 4
+            },
+            {
+              "id": "q3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "q4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Overdue: Invoice {{ $json.invoice_id }} (3 days late)"
+            },
+            {
+              "id": "q5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "A polite overdue notice. The invoice is 3 days late."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e88c2597-fa93-436c-939b-59e24947c245",
+      "name": "Stage +3 (Overdue)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "t1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Overdue +7"
+            },
+            {
+              "id": "t2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 5
+            },
+            {
+              "id": "t3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "t4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Second notice: Invoice {{ $json.invoice_id }} (7 days late)"
+            },
+            {
+              "id": "t5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "A firmer second overdue notice. The invoice is 7 days late."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "cdb6db1f-4664-491d-9a59-81e75c9a8c81",
+      "name": "Stage +7 (Second Overdue)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Overdue +14"
+            },
+            {
+              "id": "u2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 6
+            },
+            {
+              "id": "u3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "u4",
+              "name": "subject",
+              "type": "string",
+              "value": "=Escalation: Invoice {{ $json.invoice_id }} (14 days late)"
+            },
+            {
+              "id": "u5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "An escalation notice. The invoice is 14 days late and a manager is copied."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "9b54e55a-8022-44aa-9f2f-bdf4d36c933d",
+      "name": "Stage +14 (Escalation)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "v1",
+              "name": "stage_label",
+              "type": "string",
+              "value": "Final Notice"
+            },
+            {
+              "id": "v2",
+              "name": "stage_level",
+              "type": "number",
+              "value": 7
+            },
+            {
+              "id": "v3",
+              "name": "needs_manager",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "id": "v4",
+              "name": "subject",
+              "type": "string",
+              "value": "=FINAL NOTICE: Invoice {{ $json.invoice_id }} (30 days late)"
+            },
+            {
+              "id": "v5",
+              "name": "stage_instruction",
+              "type": "string",
+              "value": "A firm final notice. The invoice is 30 days overdue; mention possible further action."
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "4d78d17c-0368-4d0b-90b5-c9e3bcdccdc4",
+      "name": "Stage +30 (Final Notice)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1568,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Read + Filter\nDaily 09:00 run. Load config placeholders, read all invoices, keep only Pending, and skip any already reminded today.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "0b1af421-f4fc-4b16-8b27-f7932a3e0315",
+      "name": "Sticky Note 0d405cae",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Date Calc + Stage Routing\nCompute days relative to due date, then route to the matching reminder stage. Unmatched days are ignored (no-op).",
+        "height": 200,
+        "width": 300
+      },
+      "id": "4329099c-7fc1-40ab-87fd-0026b48c0a8a",
+      "name": "Sticky Note e7d4bb9d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Stage Templates\nEach stage sets its label, level, subject, tone instruction, and whether the manager is copied.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "052eb0cb-a996-4749-bf25-117623cfd6da",
+      "name": "Sticky Note 11513dd5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        736,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. Email\nSend via Gmail (manager CC at +14/+30). Log Sent / Failed / Skipped.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "8733b0d9-26c0-438d-9d23-c4ce2957ae84",
+      "name": "Sticky Note 74be3d49",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        16,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 6. WhatsApp\nSend via Meta WhatsApp Cloud API (HTTP). Log Sent / Failed / Skipped.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "dbc8d24e-7a6c-4601-8dd6-6c8d3a0fc320",
+      "name": "Sticky Note 204a474d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        384,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7. Update State\nAdvance reminder_level and stamp last_reminder so the same invoice is not reminded twice in one day.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "1123cf9f-fa85-4f56-8478-7d7df1779bf9",
+      "name": "Sticky Note d8eb05b4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        736,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. AI Message\nOpenAI writes the reminder (Continue On Fail). Merge Message re-attaches invoice fields; Build Message falls back to a fixed template if AI produced nothing.",
+        "height": 200,
+        "width": 300
+      },
+      "id": "ec85b1c9-725f-4a9c-a592-9847b7c3f929",
+      "name": "Sticky Note ee8bb131",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "d36a901b-16d5-454a-beab-d36606c003dc",
+      "name": "Merge Message",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2240,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const j = $json;\nlet aiText = '';\ntry {\n  if (Array.isArray(j.output) && j.output[0] && j.output[0].content && j.output[0].content[0]) {\n    aiText = j.output[0].content[0].text || '';\n  } else if (typeof j.text === 'string') { aiText = j.text; }\n} catch (e) { aiText = ''; }\nconst name = j.client_name || 'there';\nconst due = j.due_date ? String(j.due_date).slice(0, 10) : '';\nconst link = j.payment_link ? '<p>Pay securely here: <a href=\"' + j.payment_link + '\">' + j.payment_link + '</a></p>' : '';\nconst fallback = '<p>Hi ' + name + ',</p>' +\n  '<p>This is a ' + (j.stage_label || 'payment reminder') + ' regarding invoice <b>' + j.invoice_id + '</b> for ' + (j.currency || '') + ' ' + j.amount + ', due on ' + due + '.</p>' +\n  link + '<p>Thank you.</p>';\nconst message_body = (aiText && aiText.trim()) ? aiText : fallback;\nconst wa_text = 'Hi ' + name + ', ' + (j.stage_label || 'reminder') + ' for invoice ' + j.invoice_id + ': ' + (j.currency || '') + ' ' + j.amount + ' due ' + due + '.' + (j.payment_link ? ' Pay: ' + j.payment_link : '');\nreturn { ...j, message_body, wa_text };"
+      },
+      "id": "a512a7b2-5f1f-48c0-8e90-c1532b745bfb",
+      "name": "Build Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "he1",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "51192232-b24e-4fb3-9028-4eb930cb877d",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2688,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.message_body }}",
+        "options": {
+          "appendAttribution": false,
+          "ccList": "={{ $json.needs_manager ? $('Config').first().json.manager_email : '' }}"
+        }
+      },
+      "id": "4078a6ef-b185-4bfd-87b9-fda5fb776e80",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2912,
+        192
+      ],
+      "webhookId": "8b3487a8-e80e-4404-b2db-8203616c98ac",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dGNKOyExpRkH9uNg",
+          "name": "Gmail account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Build Message').item.json.invoice_id }}",
+            "client_name": "={{ $('Build Message').item.json.client_name }}",
+            "action": "={{ $('Build Message').item.json.stage_label }}",
+            "status": "Sent",
+            "detail": "={{ $json.id || \"\" }}",
+            "channel": "shivamthakur32008@gmail.com"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "037c454a-f965-4138-aae7-6918868eb697",
+      "name": "Log Email Sent",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3136,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Build Message').item.json.invoice_id }}",
+            "client_name": "={{ $('Build Message').item.json.client_name }}",
+            "action": "={{ $('Build Message').item.json.stage_label }}",
+            "channel": "Email",
+            "status": "Failed",
+            "detail": "={{ $json.error && $json.error.message ? $json.error.message : \"Email send failed\" }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "404c0ccc-c416-44f0-8a56-468ec9a0f3c3",
+      "name": "Log Email Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3136,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $json.invoice_id }}",
+            "client_name": "={{ $json.client_name }}",
+            "action": "={{ $json.stage_label }}",
+            "channel": "Email",
+            "status": "Skipped",
+            "detail": "No valid email address"
+          }
+        },
+        "options": {}
+      },
+      "id": "1c619bde-a94a-44e9-b47e-ec1f312c96a9",
+      "name": "Log Email Skipped",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2912,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "hp1",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "300f3f83-2ee0-4494-a8e0-5d7fd7974e8b",
+      "name": "Has Phone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2688,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Config').first().json.phone_number_id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: 'whatsapp', to: $json.phone, type: 'text', text: { body: $json.wa_text } } }}",
+        "options": {}
+      },
+      "id": "c03b301e-a335-4843-bfd3-d9444a961b17",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2912,
+        576
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Build Message').item.json.invoice_id }}",
+            "client_name": "={{ $('Build Message').item.json.client_name }}",
+            "action": "={{ $('Build Message').item.json.stage_label }}",
+            "channel": "WhatsApp",
+            "status": "Sent",
+            "detail": "={{ $json.messages && $json.messages[0] ? $json.messages[0].id : '' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "74be2626-4ed0-474c-89be-42bf1fade5ac",
+      "name": "Log WhatsApp Sent",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3136,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $('Build Message').item.json.invoice_id }}",
+            "client_name": "={{ $('Build Message').item.json.client_name }}",
+            "action": "={{ $('Build Message').item.json.stage_label }}",
+            "channel": "WhatsApp",
+            "status": "Failed",
+            "detail": "={{ $json.error && $json.error.message ? $json.error.message : \"WhatsApp send failed\" }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "96632fbe-adc6-4871-a1c4-29bacffab149",
+      "name": "Log WhatsApp Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3136,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "kI30KbmDAB3b4smU",
+          "cachedResultName": "reminder_log"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "log_time",
+              "displayName": "log_time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "detail",
+              "displayName": "detail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "log_time": "={{ $now.toISO() }}",
+            "invoice_id": "={{ $json.invoice_id }}",
+            "client_name": "={{ $json.client_name }}",
+            "action": "={{ $json.stage_label }}",
+            "channel": "WhatsApp",
+            "status": "Skipped",
+            "detail": "No phone number"
+          }
+        },
+        "options": {}
+      },
+      "id": "7856504a-2f57-4085-bfc4-9f0b2390d03b",
+      "name": "Log WhatsApp Skipped",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2912,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "TX06sqxGjLsJAFOA",
+          "cachedResultName": "invoices"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "invoice_id",
+              "keyValue": "={{ $json.invoice_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "schema": [
+            {
+              "id": "reminder_level",
+              "displayName": "reminder_level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_reminder",
+              "displayName": "last_reminder",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "reminder_level": "={{ $json.stage_level }}",
+            "last_reminder": "={{ $now.toISO() }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "6f3f2695-5bd4-4f2f-8f5e-3837381738c3",
+      "name": "Update Invoice",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2688,
+        864
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 09:00 Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Read Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Invoices": {
+      "main": [
+        [
+          {
+            "node": "Filter Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Pending": {
+      "main": [
+        [
+          {
+            "node": "Skip If Sent Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip If Sent Today": {
+      "main": [
+        [
+          {
+            "node": "Calculate Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Days": {
+      "main": [
+        [
+          {
+            "node": "Stage Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage Router": {
+      "main": [
+        [
+          {
+            "node": "Stage -7 (Friendly)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage -3 (Gentle)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage 0 (Due Today)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage +3 (Overdue)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage +7 (Second Overdue)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage +14 (Escalation)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage +30 (Final Notice)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage -7 (Friendly)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage Ready": {
+      "main": [
+        [
+          {
+            "node": "Generate Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Message": {
+      "main": [
+        [
+          {
+            "node": "Merge Message",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Stage -3 (Gentle)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 0 (Due Today)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage +3 (Overdue)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage +7 (Second Overdue)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage +14 (Escalation)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage +30 (Final Notice)": {
+      "main": [
+        [
+          {
+            "node": "Stage Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Message": {
+      "main": [
+        [
+          {
+            "node": "Build Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Message": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Has Phone?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Email Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Email Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Phone?": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log WhatsApp Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log WhatsApp Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log WhatsApp Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8c33c9c5-584d-4c5c-b9d9-9c08f5ec0895",
+  "meta": {
+    "instanceId": "a7ac81e5ae9d5fa29e54322ae861e42ebc40c34a217443715f97a558451118cd"
+  },
+  "nodeGroups": [],
+  "id": "JXRv2gexqrN3MoBh",
+  "tags": []
+}
